@@ -10,4 +10,4 @@ const tabSchema = new Schema({
 //mongoose会对model名字加s,尽量写成复数。
 const tab = mongoose.model('tab',tabSchema,'tab')
 
-export default tab; 
+module.exports = tab; 

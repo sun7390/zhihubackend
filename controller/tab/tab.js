@@ -18,4 +18,4 @@ class Tab {
     }
 }
 
-export default Tab;
+module.exports = Tab;

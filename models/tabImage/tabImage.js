@@ -14,5 +14,5 @@ images.findOne((err,data) => {
         images.create({data: imageList})
     }
 })
-export default images
+module.exports = images
 

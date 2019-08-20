@@ -50,4 +50,4 @@ class tabImage{
 
 }
 
-export default  new tabImage();
+module.exports =  new tabImage();
