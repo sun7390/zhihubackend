@@ -11,7 +11,16 @@ const visitUrl = async() => {
     const nameList = await page.$$eval('.name', e => e.map(item => item.textContent));
     const imgList = await page.$$eval('.avator > a > img', e => e.map(item => item.src));
     const hrefList = await page.$$eval('.avator > a', e => e.map(item => item.href));
-    console.log(hrefList);
+    const length = nameList.length;
+    let detailList = [];
+    for (let i = 0; i < length; i++) {
+        detailList.push({
+            name: nameList[i],
+            avator: imgList[i],
+            href: hrefList[i]
+        })
+    }
+    console.log(detailList);
     await browser.close();
 }
 visitUrl()
