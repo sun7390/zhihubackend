@@ -4,10 +4,16 @@ const trim = (str) => {
 
 export const convertCookie = (cookie) => {
     const cookieArr = cookie.split(";");
-    let cookieObj = {};
+    let cookieParams = [];
     for (const item of cookieArr) {
         const s = item.split("=");
-        cookieObj[trim(s[0])] = s[1];
+        // cookieObj[trim(s[0])] = decodeURIComponent(s[1]);
+        cookieParams.push({
+            name: trim(s[0]),
+            value: s[1],
+            path: '/',
+            domain: '.weibo.com'
+        })
     }
-    return cookieObj;
+    return cookieParams;
 }
