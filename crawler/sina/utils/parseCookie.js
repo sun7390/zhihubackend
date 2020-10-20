@@ -7,7 +7,6 @@ export const convertCookie = (cookie) => {
     let cookieParams = [];
     for (const item of cookieArr) {
         const s = item.split("=");
-        // cookieObj[trim(s[0])] = decodeURIComponent(s[1]);
         cookieParams.push({
             name: trim(s[0]),
             value: s[1],
