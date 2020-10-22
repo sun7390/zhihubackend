@@ -54,8 +54,8 @@ const scrollToPageBar = async() => {
         await page.evaluate((scrollStep) => {
             let scrollTop = document.scrollingElement.scrollTop;
             document.scrollingElement.scrollTop = scrollStep + scrollTop;
-        }, 400);
-        await sleep(400);
+        }, 1000);
+        await sleep(1000);
         pageBar = await page.$('div[node-type=feed_list_page]');
     }
 }
@@ -86,25 +86,68 @@ const getWeiboContent = async(curPage) => {
         return $("div[action-type=feed_list_item]").length;
     });
     logger.info('weibo count', count);
-    const wc = await page.evaluate(async() => {
-        let weiboes = [...$("div[action-type=feed_list_item]")];
-        return weiboes.map(weibo => {
-            console.log($(weibo).html());
-            const weiboContent = $.trim($(weibo).find("div[node-type=feed_list_content]").text());
-            return {
-                weiboId: $.trim($(weibo).attr("mid")),
-                content: weiboContent,
-                create_time: $.trim($(weibo).find("[node-type=feed_list_item_date]").attr("title")),
-                weibo_url: $(weibo).find("[node-type=feed_list_item_date]").attr("href"),
-                repost_num: $(weibo).find("[action-type=fl_forward] em:eq(1)").text()
-            }
-        });
-    });
+    let weiboes = await page.$$("div[action-type=feed_list_item]");
+    const wc = await Promise.all(weiboes.map(async(weibo, index) => {
+        const weiboContent = await page.evaluate((weibo) => $.trim($(weibo).find("div[node-type=feed_list_content]").text()), weibo);
+        logger.info(weiboContent, '12');
+        let content;
+        if (weiboContent.includes('展开全文')) {
+            const element = await page.$$("a[node-type=feed_list_item_date]");
+            logger.warn(element.length)
+            await element[index].click();
+            content = 'nothing' //await openNewPage(foldUrl);
+        } else {
+            content = weiboContent;
+        }
+        return {
+            // weiboId: $.trim($(weibo).attr("mid")),
+            content,
+            // create_time: $.trim($(weibo).find("[node-type=feed_list_item_date]").attr("title")),
+            // weibo_url: $(weibo).find("[node-type=feed_list_item_date]").attr("href"),
+            // repost_num: $(weibo).find("[action-type=fl_forward] em:eq(1)").text()
+        }
+    }));
+    // const wc = await page.evaluate(async() => {
+    //     let weiboes = [...$("div[action-type=feed_list_item]")];
+    //     return await Promise.all(weiboes.map(async(weibo, index) => {
+    //         const weiboContent = $.trim($(weibo).find("div[node-type=feed_list_content]").text());
+    //         let content;
+    //         let foldUrl;
+
+    //         function openNewPage(newUrl) {
+    //             return new Promise((resolve) => {
+    //                 const newPage = window.open(newUrl);
+    //                 let content;
+    //                 newPage.onLoad = function() {
+    //                     const html = newPage.document;
+    //                     content = html.getElementsByClassName("WB_text W_f14")[0].innerText;
+    //                 }
+    //                 newPage.close();
+    //                 resolve('123');
+    //             })
+    //         }
+    //         if (weiboContent.includes('展开全文')) {
+    //             foldUrl = $(weibo).find("[node-type=feed_list_item_date]").attr("href");
+    //             content = 'nothing' //await openNewPage(foldUrl);
+    //         } else {
+    //             content = weiboContent;
+    //         }
+    //         return {
+    //             weiboId: $.trim($(weibo).attr("mid")),
+    //             content,
+    //             create_time: $.trim($(weibo).find("[node-type=feed_list_item_date]").attr("title")),
+    //             weibo_url: $(weibo).find("[node-type=feed_list_item_date]").attr("href"),
+    //             repost_num: $(weibo).find("[action-type=fl_forward] em:eq(1)").text()
+    //         }
+    //     }));
+    // });
+
     for (const we of wc) {
         parseContent += (we.content + '\n')
     }
     console.log(parseContent);
 }
+
 
 
 crawlerWeibo();
