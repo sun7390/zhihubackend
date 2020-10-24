@@ -50,6 +50,7 @@ const crawlerWeibo = async() => {
         await gotoNextPage(currentPage);
     }
     fs.writeFileSync('./orignal.txt', parseContent, 'utf8');
+    await page.close();
 }
 
 // 跳转下一页
@@ -145,4 +146,3 @@ const getWeiboContent = async(curPage) => {
 
 
 crawlerWeibo();
-await page.close();
