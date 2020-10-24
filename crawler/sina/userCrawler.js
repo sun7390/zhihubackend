@@ -8,17 +8,9 @@ import fs from 'fs';
 const logger = log4js.getLogger("weibo");
 logger.level = 'debug';
 
-
-const url = 'https://weibo.com/leeyoungho';
-const browser = await puppeteer.launch({ headless: false });
-const page = await browser.newPage();
-const index = url.lastIndexOf('/');
-const nickName = url.slice(index + 1);
-
-// 所有微博内容
-let parseContent = '';
-
-const crawlerWeibo = async() => {
+// 创建页面
+const createNewPage = async(url) => {
+    const page = await browser.newPage();
     await page.setCookie(...cookie);
     await page.goto(url);
     await page
@@ -26,7 +18,28 @@ const crawlerWeibo = async() => {
         .addScriptTag({
             url: 'https://cdn.bootcss.com/jquery/3.2.0/jquery.min.js'
         })
-    await page.waitForTimeout(200)
+    await page.waitForTimeout(400);
+    return page;
+}
+
+const url = 'https://weibo.com/leeyoungho';
+const browser = await puppeteer.launch({ headless: false });
+const page = await createNewPage(url);
+const index = url.lastIndexOf('/');
+const nickName = url.slice(index + 1);
+
+// 所有微博内容
+let parseContent = '';
+
+const isNotUndef = (content) => Object.prototype.toString.call(content) !== "[object Undefined]";
+
+const newPagePromise = new Promise(res =>
+    browser.once('targetcreated',
+        target => res(target.page())
+    )
+);
+
+const crawlerWeibo = async() => {
     const pageCount = await getTotalPage();
     let currentPage = 1;
     while (currentPage <= pageCount) {
@@ -78,24 +91,24 @@ const getWeiboContent = async(curPage) => {
     if (curPage !== 1) {
         await scrollToPageBar();
     };
-    await page.evaluate(() => {
-        document.scrollingElement.scrollTop = 300;
-    });
+    // await page.evaluate(() => {
+    //     document.scrollingElement.scrollTop = 300;
+    // });
     // 获取微博个数
     const count = await page.evaluate(() => {
         return $("div[action-type=feed_list_item]").length;
     });
     logger.info('weibo count', count);
+    let waitForUrls = [];
     let weiboes = await page.$$("div[action-type=feed_list_item]");
-    const wc = await Promise.all(weiboes.map(async(weibo, index) => {
+    let wc = await Promise.all(weiboes.map(async(weibo, index) => {
         const weiboContent = await page.evaluate((weibo) => $.trim($(weibo).find("div[node-type=feed_list_content]").text()), weibo);
-        logger.info(weiboContent, '12');
         let content;
         if (weiboContent.includes('展开全文')) {
-            const element = await page.$$("a[node-type=feed_list_item_date]");
-            logger.warn(element.length)
-            await element[index].click();
-            content = 'nothing' //await openNewPage(foldUrl);
+            //const element = await page.$$(".WB_detail > .WB_from > a[node-type=feed_list_item_date]");
+            const href = await page.evaluate((weibo) => $(weibo).find("[node-type=feed_list_item_date]").attr("href"), weibo);
+            waitForUrls.push(`https://weibo.com${href}`);
+            return {};
         } else {
             content = weiboContent;
         }
@@ -107,43 +120,19 @@ const getWeiboContent = async(curPage) => {
             // repost_num: $(weibo).find("[action-type=fl_forward] em:eq(1)").text()
         }
     }));
-    // const wc = await page.evaluate(async() => {
-    //     let weiboes = [...$("div[action-type=feed_list_item]")];
-    //     return await Promise.all(weiboes.map(async(weibo, index) => {
-    //         const weiboContent = $.trim($(weibo).find("div[node-type=feed_list_content]").text());
-    //         let content;
-    //         let foldUrl;
-
-    //         function openNewPage(newUrl) {
-    //             return new Promise((resolve) => {
-    //                 const newPage = window.open(newUrl);
-    //                 let content;
-    //                 newPage.onLoad = function() {
-    //                     const html = newPage.document;
-    //                     content = html.getElementsByClassName("WB_text W_f14")[0].innerText;
-    //                 }
-    //                 newPage.close();
-    //                 resolve('123');
-    //             })
-    //         }
-    //         if (weiboContent.includes('展开全文')) {
-    //             foldUrl = $(weibo).find("[node-type=feed_list_item_date]").attr("href");
-    //             content = 'nothing' //await openNewPage(foldUrl);
-    //         } else {
-    //             content = weiboContent;
-    //         }
-    //         return {
-    //             weiboId: $.trim($(weibo).attr("mid")),
-    //             content,
-    //             create_time: $.trim($(weibo).find("[node-type=feed_list_item_date]").attr("title")),
-    //             weibo_url: $(weibo).find("[node-type=feed_list_item_date]").attr("href"),
-    //             repost_num: $(weibo).find("[action-type=fl_forward] em:eq(1)").text()
-    //         }
-    //     }));
-    // });
-
+    for (const url of waitForUrls) {
+        const newPage = await createNewPage(url);
+        const content = await newPage.evaluate(() => document.querySelectorAll('div[node-type="feed_list_content"]')[0].innerText);
+        logger.info('extra:', content)
+        wc.push({
+            content
+        })
+        await newPage.close();
+    }
     for (const we of wc) {
-        parseContent += (we.content + '\n')
+        if (isNotUndef(we.content)) {
+            parseContent += (we.content + '\n')
+        }
     }
     console.log(parseContent);
 }
