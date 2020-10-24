@@ -18,7 +18,6 @@ const createNewPage = async(url) => {
         .addScriptTag({
             url: 'https://cdn.bootcss.com/jquery/3.2.0/jquery.min.js'
         })
-    await page.waitForTimeout(400);
     return page;
 }
 
@@ -41,6 +40,7 @@ const newPagePromise = new Promise(res =>
 
 const crawlerWeibo = async() => {
     const pageCount = await getTotalPage();
+    logger.info('page count:', pageCount);
     let currentPage = 1;
     while (currentPage <= pageCount) {
         console.log(`开始抓取第${currentPage}页`);
@@ -113,21 +113,26 @@ const getWeiboContent = async(curPage) => {
             content = weiboContent;
         }
         return {
-            // weiboId: $.trim($(weibo).attr("mid")),
             content,
+            // weiboId: $.trim($(weibo).attr("mid")),
             // create_time: $.trim($(weibo).find("[node-type=feed_list_item_date]").attr("title")),
             // weibo_url: $(weibo).find("[node-type=feed_list_item_date]").attr("href"),
             // repost_num: $(weibo).find("[action-type=fl_forward] em:eq(1)").text()
         }
     }));
     for (const url of waitForUrls) {
-        const newPage = await createNewPage(url);
-        const content = await newPage.evaluate(() => document.querySelectorAll('div[node-type="feed_list_content"]')[0].innerText);
-        logger.info('extra:', content)
-        wc.push({
-            content
-        })
-        await newPage.close();
+        try {
+            const newPage = await createNewPage(url);
+            await newPage.waitForTimeout(1000);
+            const content = await newPage.evaluate(() => document.querySelectorAll('div[node-type="feed_list_content"]')[0].innerText);
+            logger.info('extra:', content)
+            wc.push({
+                content
+            });
+            await newPage.close();
+        } catch (e) {
+            logger.warn('err:', e);
+        }
     }
     for (const we of wc) {
         if (isNotUndef(we.content)) {
@@ -140,3 +145,4 @@ const getWeiboContent = async(curPage) => {
 
 
 crawlerWeibo();
+await page.close();
