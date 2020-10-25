@@ -4,7 +4,7 @@ const path = require('path')
 const process = require('child_process')
 var schedule = require("node-schedule")
 
-class twitter{
+class twitter {
     constructor() {
         this.fetchKeyword = this.fetchKeyword.bind(this)
         this.addKeyword = this.addKeyword.bind(this)
@@ -12,11 +12,11 @@ class twitter{
         this.search = this.search.bind(this)
         this.python_process = this.python_process.bind(this)
     }
-    fetchKeyword(req,res,next) {
-        twitterModel.find({},{_id: 0},(err,data) => {
-            if(err) {
-               return res.sendStatus(500).json({errors: err, message: 'Internal server error'})
-            }else{
+    fetchKeyword(req, res, next) {
+        twitterModel.find({}, { _id: 0 }, (err, data) => {
+            if (err) {
+                return res.sendStatus(500).json({ errors: err, message: 'Internal server error' })
+            } else {
                 res.send({
                     status: 0,
                     data: data
@@ -24,8 +24,8 @@ class twitter{
             }
         })
     }
-    addKeyword(req,res,next) {
-        if(req.body.keyword === '') {
+    addKeyword(req, res, next) {
+        if (req.body.keyword === '') {
             res.send({
                 status: 1,
                 data: {
@@ -33,7 +33,7 @@ class twitter{
                 }
             })
         } else {
-            twitterModel.create({data: {keyword:req.body.keyword}})
+            twitterModel.create({ data: { keyword: req.body.keyword } })
             res.send({
                 status: 0,
                 data: {
@@ -41,26 +41,26 @@ class twitter{
                 }
             })
         }
-       
+
     }
-    deleteKeyword(req,res,next) {
+    deleteKeyword(req, res, next) {
         console.log(req.body.keyword)
         let flag = true
         req.body.keyword.forEach((item) => {
-            twitterModel.deleteOne({data:{keyword:`${item}`}},function(err){
-                if(err) {
+            twitterModel.deleteOne({ data: { keyword: `${item}` } }, function(err) {
+                if (err) {
                     flag = false
                 }
             })
         })
-        if(flag) {
+        if (flag) {
             res.send({
                 status: 0,
                 data: {
                     message: '删除成功'
                 }
             })
-        }else {
+        } else {
             res.send({
                 status: 1,
                 data: {
@@ -68,36 +68,36 @@ class twitter{
                 }
             })
         }
-        
-    } 
-    search(req,res,next) {
+
+    }
+    search(req, res, next) {
         console.log(req.body.keyword)
-        let paths = path.join(__dirname,"../../crawler/twitter/run.py"),
-        rule = new schedule.RecurrenceRule(),
-        arr = []
-        for(let i = 1; i < 59; i++) {
+        let paths = path.join(__dirname, "../../crawler/twitter/run.py"),
+            rule = new schedule.RecurrenceRule(),
+            arr = []
+        for (let i = 1; i < 59; i++) {
             arr.push(i)
         }
-        rule.minute = arr  
+        rule.minute = arr
         schedule.scheduleJob(rule, () => {
-            this.python_process(paths,req.body.keyword)
+            this.python_process(paths, req.body.keyword)
         })
     }
-    python_process(paths,keyword) {
+    python_process(paths, keyword) {
         console.log(`python ${paths} ${keyword}`)
-        var workProcess = process.exec(`python ${paths} "${keyword}"`,(error,stdout,stderr) => {
+        var workProcess = process.exec(`python ${paths} "${keyword}"`, (error, stdout, stderr) => {
             if (error) {
                 console.log(error.stack);
-                console.log('Error code: '+error.code);
-                console.log('Signal received: '+error.signal);
+                console.log('Error code: ' + error.code);
+                console.log('Signal received: ' + error.signal);
             }
             console.log('stdout: ' + stdout);
             console.log('stderr: ' + stderr);
-        }) 
-        workProcess.on('exit', function (code) {
-            console.log('子进程已退出，退出码 '+code);
+        })
+        workProcess.on('exit', function(code) {
+            console.log('子进程已退出，退出码 ' + code);
         });
     }
 }
 
-module.exports =  new twitter();
+module.exports = new twitter();

@@ -1,6 +1,8 @@
 import puppeteer from 'puppeteer';
+const args = process.argv;
+const userName = args[2];
 
-const userName = '李荣浩';
+// const userName = '李荣浩';
 const url = `https://s.weibo.com/user?q=${encodeURIComponent(userName)}&Refer=index`;
 const visitUrl = async() => {
     const browser = await puppeteer.launch({ headless: false });
@@ -18,7 +20,14 @@ const visitUrl = async() => {
             href: hrefList[i]
         })
     }
-    console.log(detailList);
+    // console.log(detailList);
+    process.send({ list: detailList })
     await browser.close();
 }
-visitUrl()
+
+process.on('uncaughtException', (e) => {
+    process.send(e);
+    process.exit(1);
+});
+
+await visitUrl();
