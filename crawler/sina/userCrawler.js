@@ -20,8 +20,9 @@ const createNewPage = async(url) => {
         })
     return page;
 }
-
-const url = 'https://weibo.com/leeyoungho';
+const args = process.argv;
+const url = args[2];
+// const url = 'https://weibo.com/leeyoungho';
 const browser = await puppeteer.launch({ headless: false });
 const page = await createNewPage(url);
 const index = url.lastIndexOf('/');
@@ -50,6 +51,7 @@ const crawlerWeibo = async() => {
         await gotoNextPage(currentPage);
     }
     fs.writeFileSync('./orignal.txt', parseContent, 'utf8');
+    process.send({ message: 'done' });
     await page.close();
 }
 

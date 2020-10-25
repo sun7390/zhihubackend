@@ -20,7 +20,6 @@ const visitUrl = async() => {
             href: hrefList[i]
         })
     }
-    // console.log(detailList);
     process.send({ list: detailList })
     await browser.close();
 }

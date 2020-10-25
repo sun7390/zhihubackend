@@ -3,14 +3,27 @@ const { fork } = require('child_process');
 
 
 class Sina {
-    fetchUser(userName) {
+    fetchUser(req, res, next) {
+        const userName = req.body.userName;
         const forked = fork('../../crawler/sina/weiboUser.js', [userName]);
         forked.on('message', (msg) => {
             console.log('Message from child', msg);
+            if (Object.prototype.toString.call(msg) === '[object Array]') {
+                res.send({
+                    status: 0,
+                    data: msg
+                })
+            } else {
+                res.send({
+                    status: 1,
+                    data: msg
+                })
+            }
         });
     }
-    crawlWeibo(url) {
-
+    crawlWeibo(req, res, next) {
+        const url = req.body.url;
+        const forked = fork('../../crawler/sina/userCrawler.js', [url]);
     }
 }
 
