@@ -23,8 +23,9 @@ class Sina {
         });
     }
     crawlWeibo(req, res, next) {
+        console.log(req.body);
         const url = req.body.url;
-        const forked = fork('../../crawler/sina/userCrawler.js', [url]);
+        const forked = fork('crawler/sina/userCrawler.js', [url]);
         forked.on('message', (msg) => {
             console.log('Message from child', msg);
             if (Object.prototype.toString.call(msg) === '[object Array]') {

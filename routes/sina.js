@@ -6,6 +6,6 @@ import sina from '../controller/sina/sina'
 
 
 router.get('/user', sina.fetchUser)
-router.get('/crawl', sina.crawlWeibo)
+router.post('/crawl', jsonParser, sina.crawlWeibo)
 
 module.exports = router;

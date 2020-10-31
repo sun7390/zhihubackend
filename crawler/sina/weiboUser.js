@@ -16,7 +16,7 @@ const visitUrl = async() => {
     for (let i = 0; i < length; i++) {
         detailList.push({
             name: nameList[i],
-            avator: imgList[i],
+            avatar: imgList[i],
             href: hrefList[i]
         })
     }
