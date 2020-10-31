@@ -28,5 +28,4 @@ process.on('uncaughtException', (e) => {
     process.send(e);
     process.exit(1);
 });
-
-await visitUrl();
+visitUrl();

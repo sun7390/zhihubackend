@@ -5,7 +5,7 @@ var jsonParser = bodyParser.json();
 import sina from '../controller/sina/sina'
 
 
-router.post('/user', jsonParser, sina.fetchUser)
-router.post('/crawl', jsonParser, sina.crawlWeibo)
+router.get('/user', sina.fetchUser)
+router.get('/crawl', sina.crawlWeibo)
 
 module.exports = router;

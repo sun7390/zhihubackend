@@ -4,8 +4,9 @@ const { fork } = require('child_process');
 
 class Sina {
     fetchUser(req, res, next) {
-        const userName = req.body.userName;
-        const forked = fork('../../crawler/sina/weiboUser.js', [userName]);
+        const userName = req.query.userName;
+        console.log(userName)
+        const forked = fork('crawler/sina/weiboUser.js', [userName]);
         forked.on('message', (msg) => {
             console.log('Message from child', msg);
             if (Object.prototype.toString.call(msg) === '[object Array]') {
