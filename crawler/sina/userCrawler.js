@@ -4,12 +4,39 @@ import { sleep } from './utils/sleep.js';
 import { qsParse } from './utils/qs.js';
 import log4js from 'log4js';
 import fs from 'fs';
+import Path from 'path';
 
 const logger = log4js.getLogger("weibo");
 logger.level = 'debug';
 const args = process.argv;
 const url = args[2];
+const keyWord = args[3];
 logger.info(url);
+
+const dataRoot = Path.resolve('./analysisData');
+
+function mkdirSync(dir, cb) {
+    let paths = dir.split('/');
+    let index = 1;
+
+    function next(index) {
+        //递归结束判断
+        if (index > paths.length) return cb();
+        let newPath = paths.slice(0, index).join('/');
+        const path = Path.join(dataRoot, newPath);
+        fs.access(path, function(err) {
+            if (err) { //如果文件不存在，就创建这个文件
+                fs.mkdir(path, function(err) {
+                    next(index + 1);
+                });
+            } else {
+                //如果这个文件已经存在，就进入下一个循环
+                next(index + 1);
+            }
+        })
+    }
+    next(index);
+}
 
 (async function() {
     // 创建页面
@@ -24,7 +51,7 @@ logger.info(url);
             })
         return page;
     };
-    // const url = 'https://weibo.com/leeyoungho';
+
     const browser = await puppeteer.launch({ headless: false });
     const page = await createNewPage(url);
     const index = url.lastIndexOf('/');
@@ -46,8 +73,12 @@ logger.info(url);
             currentPage++;
             await gotoNextPage(currentPage);
         }
-        fs.writeFileSync('./orignal.txt', parseContent, 'utf8');
-        process.send({ message: 'done' });
+        const relatePath = `/${keyWord}/original.txt`;
+        const writePath = `./crawler/sina/analysisData${relatePath}`;
+        mkdirSync(relatePath, () => {
+            fs.writeFileSync(writePath, parseContent, 'utf8');
+            process.send({ message: 'done' });
+        })
         await page.close();
     }
 
@@ -66,8 +97,8 @@ logger.info(url);
             await page.evaluate((scrollStep) => {
                 let scrollTop = document.scrollingElement.scrollTop;
                 document.scrollingElement.scrollTop = scrollStep + scrollTop;
-            }, 1000);
-            await sleep(1000);
+            }, 1500);
+            await sleep(1500);
             pageBar = await page.$('div[node-type=feed_list_page]');
         }
     }
