@@ -1,5 +1,6 @@
-const path = require('path')
 const { fork } = require('child_process');
+const fs = require('fs')
+const dataPath = './crawler/sina/analysisData/'
 
 class Sina {
     fetchUser(req, res, next) {
@@ -22,7 +23,6 @@ class Sina {
         });
     }
     crawlWeibo(req, res, next) {
-        console.log(req.body);
         const url = req.body.url;
         const keyWord = req.body.keyWord;
         const forked = fork('crawler/sina/userCrawler.js', [url, keyWord]);
@@ -40,6 +40,28 @@ class Sina {
                 })
             }
         });
+    }
+    fetchCrawlResult(req, res, next) {
+        let fileList = []
+        const files = fs.readdirSync(dataPath)
+        files.forEach(function(item, index) {
+            console.log(item);
+            let stat = fs.lstatSync(dataPath + item)
+            if (stat.isDirectory() === true) {
+                fileList.push({
+                    path: item
+                })
+            }
+        })
+        console.log(fileList);
+        res.send({
+            status: 0,
+            data: fileList
+        })
+    }
+    analyzeTopic(req, res, next) {
+        const path = req.body.path;
+        console.log(path);
     }
 }
 
