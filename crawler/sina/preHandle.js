@@ -1,9 +1,15 @@
 const fs = require('fs');
 const nodejieba = require("nodejieba");
-const text = fs.readFileSync('./1.txt', 'utf8')
+const args = process.argv;
+const path = args[2];
+const rootPath = './crawler/sina/';
+const dataPath = `${rootPath}analysisData/`;
+const handlePath = `${dataPath + path}/original.txt`
+const stopPath = `${rootPath}stopWords.txt`;
+const text = fs.readFileSync(handlePath, 'utf8')
 const splitText = text.split('\r\n');
 // 停用词 
-const stopWords = fs.readFileSync('./stopWords.txt', 'utf8')
+const stopWords = fs.readFileSync(stopPath, 'utf8')
 const stopList = stopWords.split('\r\n');
 let cutWords = [];
 for (const line of splitText) {
@@ -16,9 +22,9 @@ for (const line of splitText) {
     }
     cutWords.push(single);
 }
-fs.writeFileSync('./lda.txt', cutWords, 'utf8');
+fs.writeFileSync(`${dataPath + path}/lda.txt`, cutWords, 'utf8');
 const child_process = require('child_process');
-const workerProcess = child_process.spawn('python', ['1.py']);
+const workerProcess = child_process.spawn('python', [`${rootPath}lda.py`]);
 workerProcess.stdout.on('data', function(data) {
     console.log('stdout: ' + data);
 });
