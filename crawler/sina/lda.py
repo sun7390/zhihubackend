@@ -3,7 +3,9 @@ from gensim import corpora
 import io
 import sys
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8')
-f = open("lda.txt", 'r', encoding='utf-8')
+target = sys.argv[1]
+path = "crawler/sina/analysisData/{}/lda.txt".format(target)
+f = open(path, 'r', encoding='utf-8')
 lines = f.read()
 lines = lines.split(",")
 list = []

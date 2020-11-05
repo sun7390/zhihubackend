@@ -62,6 +62,7 @@ class Sina {
     analyzeTopic(req, res, next) {
         const path = req.body.path;
         console.log(path);
+        const forked = fork('crawler/sina/preHandle.js', [path]);
     }
 }
 
