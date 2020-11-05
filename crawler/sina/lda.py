@@ -12,8 +12,8 @@ list = []
 list.append(lines)
 dictionary = corpora.Dictionary(list)
 corpus = [ dictionary.doc2bow(text) for text in list ]
-lda = ldamodel.LdaModel(corpus=corpus, id2word=dictionary, num_topics=10)
-print(lda.print_topics(num_topics=10, num_words=6))  # 把所有的主题打印出来看看
+lda = ldamodel.LdaModel(corpus=corpus, id2word=dictionary, num_topics=5)
+print(lda.print_topics(num_topics=5, num_words=6))  # 把所有的主题打印出来看看
 max = 0
 maxIdx = 0
 for e, values in enumerate(lda.inference(corpus)[0]):
