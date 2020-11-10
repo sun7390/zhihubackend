@@ -20,10 +20,12 @@ for (const line of splitText) {
             single.push(word)
         }
     }
-    cutWords.push(...single);
+    if (single.length) {
+        cutWords.push(single);   
+    }
 }
 console.log(cutWords);
-fs.writeFileSync(`${dataPath + path}/lda.txt`, cutWords.join(","), 'utf8');
+fs.writeFileSync(`${dataPath + path}/lda.txt`, cutWords.join("\n"), 'utf8');
 const child_process = require('child_process');
 const workerProcess = child_process.spawn('python', [`${rootPath}lda.py`, path]);
 workerProcess.stdout.on('data', function(data) {
