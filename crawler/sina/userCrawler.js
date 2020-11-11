@@ -52,7 +52,10 @@ function mkdirSync(dir, cb) {
         return page;
     };
 
-    const browser = await puppeteer.launch({ headless: false });
+    const browser = await puppeteer.launch({ 
+        headless: false,
+        defaultViewport: null,
+    });
     const page = await createNewPage(url);
     const index = url.lastIndexOf('/');
     const nickName = url.slice(index + 1);
@@ -63,15 +66,18 @@ function mkdirSync(dir, cb) {
     const isNotUndef = (content) => Object.prototype.toString.call(content) !== "[object Undefined]";
 
     const crawlerWeibo = async() => {
-        const pageCount = await getTotalPage();
+        logger.info('开始抓取点赞微博');
+        await crawlLikeWeibo();
+        const pageCount = await getTotalPage(page);
         logger.info('page count:', pageCount);
         let currentPage = 1;
         while (currentPage <= pageCount) {
             console.log(`开始抓取第${currentPage}页`);
-            await getWeiboContent(currentPage);
+            await getWeiboContent(currentPage, page);
             console.log(`第${currentPage}页抓取完成`);
             currentPage++;
-            await gotoNextPage(currentPage);
+            const crawlUrl = "https://weibo.com/" + nickName + "?is_search=0&visible=0&is_ori=1&is_tag=0&profile_ftype=1&page=" + currentPage + "#feedtop";
+            await gotoNextPage(crawlUrl);
         }
         const relatePath = `/${keyWord}/original.txt`;
         const writePath = `./crawler/sina/analysisData${relatePath}`;
@@ -81,49 +87,86 @@ function mkdirSync(dir, cb) {
         })
         await page.close();
     }
+    
+    // 获取点赞微博
+    const crawlLikeWeibo = async() => {
+        try {
+            const likeHref = await page.$eval(".PCD_pictext_f > .S_txt1", ele => ele.href);
+            if (likeHref) {
+                logger.info("点赞href", likeHref);
+                const newPage = await createNewPage(likeHref);
+                await newPage.waitForTimeout(1000);
+                const pageCount = await getTotalPage(newPage);
+                logger.info('like page count:', pageCount);
+                let currentPage = 1;
+                while (currentPage <= pageCount) {
+                    console.log(`点赞页面: 开始抓取第${currentPage}页`);
+                    await getWeiboContent(currentPage, newPage);
+                    console.log(`点赞页面: 第${currentPage}页抓取完成`);
+                    currentPage++;
+                    const url = likeHref.replace(/\?(.*)$/, `?page=${currentPage}`)
+                    await gotoNextPage(url);
+                }
+                await newPage.close();
+            }
+        } catch (e) {
+            logger.warn('err:', e);
+        }
+    }
+
 
     // 跳转下一页
-    const gotoNextPage = async(pageNum) => {
-        await page.goto("https://weibo.com/" + nickName + "?is_search=0&visible=0&is_ori=1&is_tag=0&profile_ftype=1&page=" + pageNum + "#feedtop");
+    const gotoNextPage = async(url) => {
+        await page.goto(url);
         await page.addScriptTag({
             url: "https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"
         });
     }
 
     // 滚动直到出现分页
-    const scrollToPageBar = async() => {
+    const scrollToPageBar = async(page) => {
         let pageBar = await page.$('div[node-type=feed_list_page]');
         while (!pageBar) {
+            const scrollTop = await page.evaluate(() => document.documentElement.scrollTop || document.body.scrollTop);
             await page.evaluate((scrollStep) => {
                 let scrollTop = document.scrollingElement.scrollTop;
                 document.scrollingElement.scrollTop = scrollStep + scrollTop;
             }, 1500);
             await sleep(1500);
-            pageBar = await page.$('div[node-type=feed_list_page]');
+            // const trueHeight = await page.evaluate(() => document.documentElement.scrollHeight || document.body.scrollHeight);
+            // const scrollTop = await page.evaluate(() => document.documentElement.scrollTop || document.body.scrollTop);
+            // const visionHeight = await page.evaluate(() => document.documentElement.clientHeight || document.body.clientHeight);
+            const newScrollTop = await page.evaluate(() => document.documentElement.scrollTop || document.body.scrollTop);
+            pageBar = await page.$('div[node-type=feed_list_page]')
+            if (newScrollTop < scrollTop + 1500) {
+                if (!pageBar) {
+                    pageBar = 1;
+                }
+            }
         }
     }
 
     // 获取总页数
-    const getTotalPage = async() => {
-        await scrollToPageBar();
+    const getTotalPage = async(page) => {
+        await scrollToPageBar(page);
         const pageList = await page.$("div[node-type=feed_list_page] div > span > a");
-        const pageInfo = await page.evaluate(async(pageList) => {
-            let pageInfo = pageList.getAttribute("action-data");
-            return pageInfo;
-        }, pageList);
-        const pageInfoObj = qsParse(pageInfo);
-        const pageCount = pageInfoObj.countPage;
+        let pageCount = 1;
+        if (pageList) {
+            const pageInfo = await page.evaluate(async(pageList) => {
+                let pageInfo = pageList.getAttribute("action-data");
+                return pageInfo;
+            }, pageList);
+            const pageInfoObj = qsParse(pageInfo);
+            pageCount = pageInfoObj.countPage;
+        }
         return pageCount;
     }
 
     // 获取单页微博
-    const getWeiboContent = async(curPage) => {
+    const getWeiboContent = async(curPage, page) => {
         if (curPage !== 1) {
-            await scrollToPageBar();
+            await scrollToPageBar(page);
         };
-        // await page.evaluate(() => {
-        //     document.scrollingElement.scrollTop = 300;
-        // });
         // 获取微博个数
         const count = await page.evaluate(() => {
             return $("div[action-type=feed_list_item]").length;
@@ -131,13 +174,21 @@ function mkdirSync(dir, cb) {
         logger.info('weibo count', count);
         let waitForUrls = [];
         let weiboes = await page.$$("div[action-type=feed_list_item]");
-        let wc = await Promise.all(weiboes.map(async(weibo, index) => {
+        let wc = await Promise.all(weiboes.map(async(weibo) => {
             const weiboContent = await page.evaluate((weibo) => $.trim($(weibo).find("div[node-type=feed_list_content]").text()), weibo);
+            const repostHref = await page.evaluate((weibo) => $(weibo).find(".WB_feed_expand  [node-type=feed_list_item_date]").attr("href"), weibo);
+            if (repostHref) {
+                logger.info(repostHref)
+                waitForUrls.push(`https://weibo.com${repostHref}`);
+            }
             let content;
             if (weiboContent.includes('展开全文')) {
-                //const element = await page.$$(".WB_detail > .WB_from > a[node-type=feed_list_item_date]");
                 const href = await page.evaluate((weibo) => $(weibo).find("[node-type=feed_list_item_date]").attr("href"), weibo);
-                waitForUrls.push(`https://weibo.com${href}`);
+                if (href.includes('weibo.com')) {
+                    waitForUrls.push(href);
+                } else {
+                    waitForUrls.push(`https://weibo.com${href}`);   
+                }
                 return {};
             } else {
                 content = weiboContent;
@@ -151,18 +202,19 @@ function mkdirSync(dir, cb) {
             }
         }));
         for (const url of waitForUrls) {
+            let newPage;
             try {
-                const newPage = await createNewPage(url);
+                newPage = await createNewPage(url);
                 await newPage.waitForTimeout(1000);
                 const content = await newPage.evaluate(() => document.querySelectorAll('div[node-type="feed_list_content"]')[0].innerText);
                 logger.info('extra:', content)
                 wc.push({
                     content
                 });
-                await newPage.close();
             } catch (e) {
                 logger.warn('err:', e);
             }
+            await newPage.close();
         }
         for (const we of wc) {
             if (isNotUndef(we.content)) {
@@ -171,5 +223,5 @@ function mkdirSync(dir, cb) {
         }
         console.log(parseContent);
     }
-    crawlerWeibo();
+    await crawlerWeibo();
 })();
