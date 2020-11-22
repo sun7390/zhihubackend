@@ -7,7 +7,7 @@ const dataPath = `${rootPath}analysisData/`;
 const handlePath = `${dataPath + path}/original.txt`
 const stopPath = `${rootPath}stopWords.txt`;
 const text = fs.readFileSync(handlePath, 'utf8')
-const splitText = text.split('\r\n');
+const splitText = text.split('\n');
 // 停用词 
 const stopWords = fs.readFileSync(stopPath, 'utf8')
 const stopList = stopWords.split('\r\n');
