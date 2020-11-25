@@ -12,15 +12,26 @@ const splitText = text.split('\n');
 const stopWords = fs.readFileSync(stopPath, 'utf8')
 const stopList = stopWords.split('\r\n');
 let cutWords = [];
+let num = 0;
 for (const line of splitText) {
     const original = nodejieba.cut(line);
     let single = [];
+    single.push(num++)
     for (const word of original) {
-        if (!stopList.includes(word) && word.length > 1) {
-            single.push(word)
+        if (!stopList.includes(word) && word.length > 1 ) {
+            if (!/[^\u4e00-\u9fa5]/g.test(word)) {
+                single.push(word)
+            }
         }
+        // if (!stopList.includes(word)) {
+        //     // 去除特殊字符
+        //     word.replace(/[^\u4e00-\u9fa5]/g,'');
+        //     if (word.length > 0) {
+        //         single.push(word)
+        //     }
+        // }
     }
-    if (single.length) {
+    if (single.length > 1) {
         cutWords.push(single);   
     }
 }
