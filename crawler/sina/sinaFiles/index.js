@@ -269,7 +269,7 @@ for (const name of names) {
 
 
     const browser = await puppeteer.launch({ headless: false });
-    for (let i = 0; i < hrefs.length; i++) {
+    for (let i = 27; i < hrefs.length; i++) {
         let parseContent = '';
         let waitForUrls = [];
         let weiboes = '';
@@ -278,13 +278,38 @@ for (const name of names) {
         // 滚动直到出现分页
         const scrollToPageBar = async() => {
             weiboes = await page.$$("div[action-type=feed_list_item]");
-            while (weiboes.length < 10) {
-                await page.evaluate((scrollStep) => {
-                    let scrollTop = document.scrollingElement.scrollTop;
-                    document.scrollingElement.scrollTop = scrollStep + scrollTop;
-                }, 1500);
-                await sleep(1500);
-                weiboes = await page.$$("div[action-type=feed_list_item]");
+            let moreButton = null;
+            let length = 0;
+            while (length < 300) {
+                moreButton = await page.$(".more_txt");
+                while(!moreButton) {
+                    await page.evaluate((scrollStep) => {
+                        let scrollTop = document.scrollingElement.scrollTop;
+                        document.scrollingElement.scrollTop = scrollStep + scrollTop;
+                    }, 4000);
+                    await sleep(2000);
+                    moreButton = await page.$(".more_txt");
+                }
+                if (moreButton) {
+                    await moreButton.click();
+                    weiboes = await page.$$("div[action-type=feed_list_item]");
+                    length = weiboes.length;
+                }
+                // if (moreButton) {
+                //     await moreButton.click()
+                // }
+                // await page.evaluate((scrollStep) => {
+                //     let scrollTop = document.scrollingElement.scrollTop;
+                //     document.scrollingElement.scrollTop = scrollStep + scrollTop;
+                // }, 1500);
+                // await sleep(1500);
+                // moreButton = await page.$(".more_txt");
+                // weiboes = await page.$$("div[action-type=feed_list_item]");
+                // if (weiboes.length === length) {
+                //     length = 1000;
+                // } else {
+                //     length = weiboes.length;
+                // }
             }
         }
         await scrollToPageBar();
