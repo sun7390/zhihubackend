@@ -90,18 +90,18 @@ function mkdirSync(dir, cb) {
         });
     }
 
-    // 滚动直到出现分页
-    const scrollToPageBar = async() => {
-        let pageBar = await page.$('div[node-type=feed_list_page]');
-        while (!pageBar) {
-            await page.evaluate((scrollStep) => {
-                let scrollTop = document.scrollingElement.scrollTop;
-                document.scrollingElement.scrollTop = scrollStep + scrollTop;
-            }, 1500);
-            await sleep(1500);
-            pageBar = await page.$('div[node-type=feed_list_page]');
-        }
+// 滚动直到出现分页
+const scrollToPageBar = async() => {
+    let pageBar = await page.$('div[node-type=feed_list_page]');
+    while (!pageBar) {
+        await page.evaluate((scrollStep) => {
+            let scrollTop = document.scrollingElement.scrollTop;
+            document.scrollingElement.scrollTop = scrollStep + scrollTop;
+        }, 1500);
+        await sleep(1500);
+        pageBar = await page.$('div[node-type=feed_list_page]');
     }
+}
 
     // 获取总页数
     const getTotalPage = async() => {

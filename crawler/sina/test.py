@@ -1,100 +1,3 @@
-# import pyLDAvis.gensim
-# from gensim.models import doc2vec, ldamodel
-# from gensim import corpora
-# from gensim.models.coherencemodel import CoherenceModel
-# import io
-# import sys
-# sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8')
-# target = sys.argv[1]
-# path = "./analysisData/{}/lda.txt".format(target)
-# f = open(path, 'r', encoding='utf-8')
-# list = []
-# line = f.readline()
-# while line:
-#     list.append(line)
-#     line = f.readline()
-# # lines = lines.split(",")
-# # list = []
-# # list.append(lines)
-# dictionary = corpora.Dictionary(list)
-# corpus = [ dictionary.doc2bow(text) for text in list ]
-# lda = ldamodel.LdaModel(corpus=corpus, id2word=dictionary, iterations=50, num_topics=5)
-# bad = ldamodel.LdaModel(corpus=corpus, id2word=dictionary, iterations=50, num_topics=2)
-# goodcm = CoherenceModel(model=lda, corpus=corpus, dictionary=dictionary, coherence='u_mass')
-# badcm = CoherenceModel(model=bad, corpus=corpus, dictionary=dictionary, coherence='u_mass')
-# print(goodcm)
-# print(badcm)
-# visualisation = pyLDAvis.gensim.prepare(lda, corpus, dictionary)
-# pyLDAvis.save_html(visualisation, 'LDA_Visualization.html')
-# print(goodcm.get_coherence())
-# print(badcm.get_coherence())
-
-# -*- coding: utf-8 -*-
-# tf-dif 关键词
-# import jieba.posseg as pseg
-# from jieba import analyse
-# import io
-# import sys
-# sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8')
-# target = '李荣浩'
-# path = "./analysisData/{}/original.txt".format(target)
-# def keyword_extract(data, file_name):
-#    tfidf = analyse.extract_tags
-#    keywords = tfidf(data)
-#    return keywords
-
-# def getKeywords(docpath, savepath):
-
-#    with open(docpath, 'r', encoding='UTF-8') as docf, open(savepath, 'w', encoding='UTF-8') as outf:
-#       for data in docf:
-#          data = data[:len(data)-1]
-#          keywords = keyword_extract(data, savepath)
-#          for word in keywords:
-#             outf.write(word + ' ')
-#          outf.write('\n')
-# getKeywords(path, '1.txt')
-
-# doc2vec
-import gensim
-import jieba
-import pandas as pd
-import os
-from gensim.models.doc2vec import Doc2Vec
-
-target = '李荣浩'
-path = "./analysisData/{}/lda.txt".format(target)
-f = open(path, 'r', encoding='utf-8')
-list = []
-line = f.readline()
-while line:
-    list.append(line.replace("\n", "").split(","))
-    line = f.readline()
-
-taggle = gensim.models.doc2vec.TaggedDocument
-
-def X_train(sentence):
-   x_train = []
-   for i, text in enumerate(sentence):
-      word_list = text
-      l = len(word_list)
-      word_list[l - 1] = word_list[l - 1].strip()
-      document = taggle(word_list, tags = [i])
-      x_train.append(document)
-   return x_train
-
-c = X_train(list)
-
-def train(x_train, size = 300):
-   model = Doc2Vec(x_train, min_count = 1, window = 3,size = size, sample = 1e-3, negative=5, workers= 4)
-   model.train(x_train, total_examples = model.corpus_count, epochs = 10)
-   return model
-
-model_dm = train(c)
-
-print(model_dm)
-
-
-
 # 分割
 # _*_ coding: utf-8 _*_
 
@@ -106,6 +9,11 @@ import os
 import numpy
 import logging
 from collections import defaultdict
+import io
+import sys
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8')
+target = sys.argv[1]
 
 # 全局变量
 MAX_ITER_NUM = 10000    # 最大迭代次数
@@ -257,7 +165,7 @@ class CorpusSet(object):
 
         # 读取article数据
         for line in article_list:
-            frags = line.strip().split()
+            frags = line.strip().split(",")
             if len(frags) < 2:
                 continue
 
@@ -663,7 +571,6 @@ class LdaBase(CorpusSet):
         :key: 加载模型数据
         """
         name_predix = "%s-%05d" % (self.model_name, self.current_iter)
-
         # 加载训练结果
         self.load_parameter(os.path.join(self.dir_path, "%s.%s" % (name_predix, "param")))
         self.load_wordmap(os.path.join(self.dir_path, "%s.%s" % (name_predix, "wordmap")))
@@ -676,8 +583,7 @@ class LdaModel(LdaBase):
     LDA模型定义,主要实现训练、继续训练、推断的过程
     """
 
-    def init_train_model(self, dir_path, model_name, current_iter, iters_num=None, topics_num=10, twords_num=200,
-                         alpha=-1.0, beta=0.01, data_file="", prior_file=""):
+    def init_train_model(self, dir_path, model_name, current_iter, iters_num=None, topics_num=10, twords_num=200, alpha=-1.0, beta=0.01, data_file="", prior_file=""):
         """
         :key: 初始化训练模型,根据参数current_iter（是否等于0）决定是初始化新模型,还是加载已有模型
         :key: 当初始化新模型时,除了prior_file先验文件外,其余所有的参数都需要,且current_iter等于0
@@ -750,11 +656,9 @@ class LdaModel(LdaBase):
         :key: 初始化推断模型
         """
         self.train_model = train_model
-
         # 初始化变量: 主要用到self.topics_num, self.K
         self.topics_num = train_model.topics_num
         self.K = train_model.K
-
         # 初始化变量self.alpha, self.beta,直接沿用train_model的值
         self.alpha = train_model.alpha      # K维的float值,训练和推断模型中的K相同,故可以沿用
         self.beta = train_model.beta        # V维的float值,推断模型中用于计算phi的V值应该是全局的word的数量,故可以沿用
@@ -764,7 +668,7 @@ class LdaModel(LdaBase):
         self.global_bi = train_model.local_bi
         return
 
-    def inference_data(self, article_list, iters_num=100, repeat_num=3):
+    def inference_data(self, article_list, iters_num=50, repeat_num=3):
         """
         :key: 利用现有模型推断数据
         :param article_list: 每一行的数据格式为: id[tab]word1 word2 word3......
@@ -801,7 +705,6 @@ class LdaModel(LdaBase):
         # 计算结果,并返回
         return return_theta / repeat_num
 
-
 if __name__ == "__main__":
     """
     测试代码
@@ -809,8 +712,8 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s\t%(levelname)s\t%(message)s")
 
     # train或者inference
-    test_type = "train"
-    # test_type = "inference"
+    # test_type = "train"
+    test_type = "inference"
 
     # 测试新模型
     if test_type == "train":
@@ -821,13 +724,16 @@ if __name__ == "__main__":
         model.begin_gibbs_sampling_train()
     elif test_type == "inference":
         model = LdaModel()
-        model.init_inference_model(LdaModel().init_train_model("data/", "model", current_iter=134))
-        data = [
-            "cn	咪咕 漫画 咪咕 漫画 漫画 更名 咪咕 漫画 资源 偷星 国漫 全彩 日漫 实时 在线看 随心所欲 登陆 漫画 资源 黑白 全彩 航海王",
-            "co	aircloud aircloud 硬件 设备 wifi 智能 手要 平板电脑 电脑 存储 aircloud 文件 远程 型号 aircloud 硬件 设备 wifi"
-        ]
+        model.init_inference_model(LdaModel().init_train_model("crawler/sina/data/", "model", current_iter=50))
+        path = "crawler/sina/analysisData/{}/lda.txt".format(target)
+        f = open(path, 'r', encoding='utf-8')
+        data = []
+        line = f.readline()
+        while line:
+            data.append(line)
+            line = f.readline()
         result = model.inference_data(data)
-
+        print(result[0])
     # 退出程序
     exit()
 

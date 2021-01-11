@@ -63,6 +63,19 @@ class Sina {
         const path = req.body.path;
         console.log(path);
         const forked = fork('crawler/sina/preHandle.js', [path]);
+        forked.on('message', (msg) => {
+            if (Object.prototype.toString.call(msg) === '[object Array]') {
+                res.send({
+                    status: 0,
+                    data: msg
+                })
+            } else {
+                res.send({
+                    status: 1,
+                    data: msg
+                })
+            }
+        });
     }
 }
 
